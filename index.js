@@ -5,6 +5,23 @@ const os = require('os');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const { initializeApp } = require('firebase/app');
+const { getAuth } = require('firebase/auth');
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
+};
+
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -61,6 +78,10 @@ app.get('/', (req, res) => {
     rateLimit: {
       windowMs: limiter.windowMs,
       max: limiter.max
+    },
+    firebase: {
+      initialized: !!firebaseApp,
+      projectId: process.env.FIREBASE_PROJECT_ID
     }
   });
 });
@@ -85,6 +106,9 @@ app.get('/health', (req, res) => {
       },
       pid: process.pid,
       version: process.version
+    },
+    firebase: {
+      initialized: !!firebaseApp
     }
   });
 });
@@ -104,6 +128,7 @@ const server = app.listen(port, () => {
   console.log(`Server time: ${new Date().toISOString()}`);
   console.log(`Node version: ${process.version}`);
   console.log(`Platform: ${process.platform}`);
+  console.log(`Firebase initialized: ${!!firebaseApp}`);
 });
 
 // Handle graceful shutdown
