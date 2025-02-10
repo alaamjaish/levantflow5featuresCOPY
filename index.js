@@ -2,14 +2,37 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const os = require('os');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const startTime = new Date();
 
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Middleware
+app.use(helmet()); // Security headers
+app.use(compression()); // Compress responses
 app.use(cors());
 app.use(express.json());
+app.use(limiter); // Apply rate limiting
+
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -34,7 +57,11 @@ app.get('/', (req, res) => {
       platform: process.platform,
       hostname: os.hostname()
     },
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    rateLimit: {
+      windowMs: limiter.windowMs,
+      max: limiter.max
+    }
   });
 });
 
@@ -62,6 +89,14 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    message: 'Route not found',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Start server
 const server = app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
@@ -77,4 +112,16 @@ process.on('SIGTERM', () => {
   server.close(() => {
     console.log('HTTP server closed');
   });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 }); 
