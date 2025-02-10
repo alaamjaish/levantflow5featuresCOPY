@@ -9,13 +9,18 @@
 /node_modules
 /.pnp
 .pnp.js
+/levanttalk/node_modules
 
 # Testing
 /coverage
+/levanttalk/coverage
 
 # Production build
 /build
 /dist
+/levanttalk/.next
+/levanttalk/build
+/levanttalk/dist
 
 # Debug logs
 npm-debug.log*
@@ -35,4 +40,14 @@ yarn-error.log*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db 
+Thumbs.db
+
+# Next.js specific
+.next/
+out/
+.vercel
+*.tsbuildinfo
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts 
